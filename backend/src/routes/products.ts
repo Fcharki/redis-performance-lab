@@ -1,4 +1,3 @@
-
 import { Router } from "express";
 import db from "../config/db";
 import redis from "../config/redis";

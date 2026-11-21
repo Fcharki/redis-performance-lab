@@ -1,122 +1,128 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+import {
+  Activity,
+  Database,
+  Zap,
+  Gauge,
+  XCircle,
+  Server,
+  Clock
+} from "lucide-react";
+
+import DashboardHeader from "./components/DashboardHeader";
+import MetricCard from "./components/MetricCard";
+import PerformanceChart from "./components/PerformanceChart";
+import BenchmarkPanel from "./components/BenchmarkPanel";
+import ProductsPreview from "./components/ProductsPreview";
+import RequestPanel from "./components/RequestPanel";
+
+import { useBenchmark } from "./hooks/useBenchmark";
+import { useRateLimit } from "./hooks/useRateLimit";
 
 function App() {
-  const [count, setCount] = useState(0)
+  const {
+    products,
+    sqliteTime,
+    redisTime,
+    hits,
+    misses,
+    loading,
+    benchmarking,
+    error,
+    chartData,
+    hitRatio,
+    speedImprovement,
+    handleSQLite,
+    handleRedis,
+    runBenchmark
+  } = useBenchmark();
+
+  const {
+    results: rateResults,
+    testing: rateTesting,
+    run: runRateLimitTest
+  } = useRateLimit();
+
+  const formatTime = (value: number | null) =>
+    value === null ? "--" : `${value.toFixed(2)} ms`;
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+    <main className="min-h-screen bg-[#090d16] text-gray-200">
+      <div className="mx-auto max-w-[1440px] p-5 md:p-8">
 
-      <div className="ticks"></div>
+        <DashboardHeader
+          benchmarking={benchmarking}
+          disabled={benchmarking || loading}
+          onBenchmark={runBenchmark}
+        />
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+        {error && (
+          <div className="mb-5 flex items-center gap-2 rounded-lg border border-red-900 bg-red-950/50 p-4 text-sm text-red-300">
+            <XCircle size={18} />
+            {error}
+          </div>
+        )}
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+        <section className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <MetricCard
+            title="SQLite response"
+            value={formatTime(sqliteTime)}
+            icon={<Database />}
+            description="Direct database query"
+          />
+          <MetricCard
+            title="Redis response"
+            value={formatTime(redisTime)}
+            icon={<Zap />}
+            description="Cached API response"
+          />
+          <MetricCard
+            title="Cache hit ratio"
+            value={`${hitRatio.toFixed(1)}%`}
+            icon={<Gauge />}
+            description={`${hits} hits · ${misses} misses`}
+          />
+          <MetricCard
+            title="Speed improvement"
+            value={speedImprovement === null
+              ? "--"
+              : `${speedImprovement.toFixed(1)}%`}
+            icon={<Activity />}
+            description="Based on latest measurements"
+          />
+        </section>
+
+        <section className="mb-5 grid grid-cols-1 gap-5 xl:grid-cols-[1.4fr_1fr]">
+          <PerformanceChart data={chartData} />
+
+          <BenchmarkPanel
+            loading={loading}
+            benchmarking={benchmarking}
+            onSQLite={handleSQLite}
+            onRedis={handleRedis}
+            onBenchmark={runBenchmark}
+          />
+        </section>
+
+        <section className="grid grid-cols-1 gap-5 xl:grid-cols-2">
+          <ProductsPreview products={products} />
+
+          <RequestPanel
+            results={rateResults}
+            testing={rateTesting}
+            onRun={runRateLimitTest}
+          />
+        </section>
+
+        <footer className="flex items-center justify-center gap-2 py-8 text-xs text-slate-500">
+          <Server size={15} />
+          Redis Performance Lab
+          <span>•</span>
+          <Clock size={15} />
+          Local development
+        </footer>
+      </div>
+    </main>
+  );
 }
 
-export default App
+export default App;
